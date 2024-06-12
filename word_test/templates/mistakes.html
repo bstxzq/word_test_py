@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>错题本</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">错题本</h2>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">序号</th>
+                        <th scope="col">题目</th>
+                        <th scope="col">词性</th>
+                        <th scope="col">错误次数</th>
+                        <th scope="col">正确次数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mistake in mistakes %}
+                        <tr>
+                            <td>{{ mistake.index }}</td>
+                            <td>{{ mistake.word }}</td>
+                            <td>{{ mistake.part_of_speech }}</td>
+                            <td>{{ mistake.incorrect_answers }}</td>
+                            <td>{{ mistake.correct_answers }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

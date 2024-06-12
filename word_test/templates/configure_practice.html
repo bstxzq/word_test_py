@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习配置</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1, p {
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        select, input[type="number"], input[type="submit"] {
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+            width: 100%;
+        }
+        input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>欢迎，{{ current_user.username }}!</h1>
+        <p>请配置您的练习参数：</p>
+        <form id="practice-config-form" action="/configure_practice" method="post">
+            <label for="practice_type">练习模式:</label>
+            <select name="practice_type" id="practice_type">
+                <option value="english_to_chinese">英译中</option>
+                <option value="chinese_to_english">中译英</option>
+            </select>
+
+            <label for="word_label">词库选择:</label>
+            <select name="word_label" id="word_label">
+                {% for label in word_labels %}
+                    <option value="{{ label.id }}">{{ label.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="number_of_words">单词数量:</label>
+            <input type="number" name="number_of_words" id="number_of_words" min="1" max="100">
+
+            <input type="submit" value="开始练习">
+        </form>
+    </div>
+</body>
+</html>

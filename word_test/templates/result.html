@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习结果</title>
+    <!-- 引入Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center">练习结果</h1>
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title text-center">您的得分</h3>
+                        <p class="text-center">
+                            <strong>总题数:</strong> {{ total_questions }} |
+                            <strong>得分:</strong> {{ score }} |
+                            <strong>百分比:</strong> {{ percentage }}%
+                        </p>
+                        <p class="text-center">
+                            <strong>正确题数:</strong> {{ correct_count }}
+                        </p>
+<!-- 在您的result.html文件的适当位置添加以下代码 -->
+
+<h4 class="text-center mt-4">您的答题情况</h4>
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">序号</th>
+                <th scope="col">题目</th>
+                <th scope="col">我的答案</th>
+                <th scope="col">正确答案</th>
+                <th scope="col">对错</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+                <tr>
+                    <td>{{ item.index }}</td>
+                    <td>{{ item.word_text }}</td>
+                    <td>{{ item.user_answer }}</td>
+                    <td>{{ item.correct_answer }}</td>
+                    <td>
+                        {% if item.is_correct %}
+                            <span style="color: green;">对</span>
+                        {% else %}
+                            <span style="color: red;">错</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+
+<!-- 确保在您的HTML文件中已经包含了Bootstrap CSS -->
+
+
+                            <a href="/" class="btn btn-primary">返回主页</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 引入Bootstrap JS和依赖的Popper.js和jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

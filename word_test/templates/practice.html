@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习会话</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #questions-container {
+            margin-bottom: 20px;
+        }
+        .question {
+            margin-bottom: 10px;
+        }
+        button[type="submit"] {
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>练习会话</h1>
+    <form id="practice-form" action="/result" method="post">
+        <div id="questions-container"></div>
+        <button type="submit">提交</button>
+    </form>
+
+    <script>
+        var wordsJSON = '{{ words|tojson }}';
+        var words = JSON.parse(wordsJSON);
+        var practice_type = '{{ practice_type }}';
+
+        function generateQuestions() {
+            var questionsContainer = document.getElementById('questions-container');
+            questionsContainer.innerHTML = '';
+
+            words.forEach(function (word, index) {
+                var question = document.createElement('div');
+                question.className = 'question';
+
+                if (practice_type === 'english_to_chinese') {
+                    question.innerHTML =
+                        (index + 1) + '. ' + word.word + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '">';
+                } else if (practice_type === 'chinese_to_english') {
+                    question.innerHTML =
+                        (index + 1) + '. ' + word.translation + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '">';
+                }
+
+                questionsContainer.appendChild(question);
+            });
+        }
+
+        window.onload = generateQuestions;
+
+        document.getElementById('practice-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            var inputs = document.querySelectorAll('input[type="text"]');
+            var answers = Array.from(inputs).map(function (input) {
+                return {
+                    id: input.getAttribute('name').split('-')[1],
+                    answer: input.value,
+                };
+            });
+
+            var isFormValid = true;
+            answers.forEach(function (answer) {
+                if (answer.answer.trim() === '') {
+                    isFormValid = false;
+                    // 处理验证错误（例如显示错误消息）
+                }
+            });
+
+            if (isFormValid) {
+                document.getElementById('practice-form').submit();
+            }
+        });
+    </script>
+</body>
+</html>

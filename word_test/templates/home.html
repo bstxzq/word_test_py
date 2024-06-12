@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>单词练习</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .btn-custom {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="jumbotron text-center">
+            <h1 class="display-4">欢迎，{{ current_user.username }}!</h1>
+            <p class="lead">这里是您的单词学习中心。请选择以下选项开始练习：</p>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <a href="{{ url_for('configure_practice') }}" class="btn btn-primary btn-lg btn-block">开始练习</a>
+            </div>
+            <div class="col-md-6 mb-4">
+                <a href="{{ url_for('mistakes') }}" class="btn btn-secondary btn-lg btn-block">查看错题本</a>
+            </div>
+            <div class="col-12">
+                <a href="/logout" class="btn btn-danger btn-lg btn-block">退出登录</a>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
