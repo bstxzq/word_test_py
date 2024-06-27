@@ -2,3 +2,7 @@
 /数据库操作.py
 /words.csv
 /Dockerfile
+/bert-base-chinese-model/
+/instance/
+/bert-base-chinese-tokenizer/
+/run.py

@@ -4,6 +4,7 @@ from flask_login import login_required, login_user, logout_user, current_user
 from word_test import app, login_manager,db
 from word_test.models import User,Word, MistakeBook,WordLabel
 import bcrypt
+from AnswerChecker import AnswerChecker
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -69,7 +70,6 @@ def configure_practice():
 
     # 如果是GET请求，显示配置页面
     word_labels = WordLabel.query.all()  # 从数据库获取所有标签
-    print("Retrieved word labels:", word_labels)  # 添加打印语句
     return render_template('configure_practice.html', word_labels=word_labels)
 
 @app.route('/practice')
@@ -77,7 +77,6 @@ def configure_practice():
 def practice():
     # get模式，从session或数据库获取用户设置
     practice_type = session.get('practice_type')
-    #word_label_id = session.get('word_label_id')
     number_of_words = session.get('number_of_words', 10)
 
     # 根据设置从数据库中获取单词
@@ -108,28 +107,33 @@ def result():
         incorrect_answers = {}
 
         if practice_type == "english_to_chinese":
+            checker = AnswerChecker('./bert-base-chinese-tokenizer', './bert-base-chinese-model')
             correct_answers = {str(item['id']): item['translation'] for item in words}
             for word_id, user_answer in user_answers.items():
                 correct_answer = correct_answers.get(word_id)
-                if user_answer in correct_answer:
-                    score += 1
-                    correct_count += 1
+                if correct_answer:  # 检查是否存在正确答案
+                    similarity = checker.check_answer(user_answer, correct_answer)
+                    print(user_answer, correct_answer, similarity)
+                    if similarity > 0.79:
+                        score += 1
+                        correct_count += 1
+                    else:
+                        incorrect_answers[word_id] = user_answer
                 else:
-                    if word_id not in incorrect_answers:
-                        incorrect_answers[word_id] = []
-                    incorrect_answers[word_id].append(user_answer)
+                    incorrect_answers[word_id] = user_answer
 
         elif practice_type == "chinese_to_english":
             correct_answers = {str(item['id']): item['word'] for item in words}
             for word_id, user_answer in user_answers.items():
                 correct_answer = correct_answers.get(word_id)
-                if user_answer.lower() == correct_answer.lower():
-                    score += 1
-                    correct_count += 1
+                if correct_answer:  # 检查是否存在正确答案
+                    if user_answer.lower() == correct_answer.lower():
+                        score += 1
+                        correct_count += 1
+                    else:
+                        incorrect_answers[word_id] = user_answer
                 else:
-                    if word_id not in incorrect_answers:
-                        incorrect_answers[word_id] = []
-                    incorrect_answers[word_id].append(user_answer)
+                    incorrect_answers[word_id] = user_answer
 
         total_questions = len(words)
         percentage = (score / total_questions) * 100 if total_questions > 0 else 0
@@ -140,20 +144,32 @@ def result():
             word_text = f"{word['word']} ({word['part_of_speech']})"
             user_answer = user_answers.get(word_id, '未回答')
             correct_answer = correct_answers.get(word_id, 'N/A')
-            is_correct = user_answer in correct_answer if word_id in user_answers else False
+
+            is_correct = False
+            if practice_type == "chinese_to_english":
+                is_correct = user_answer.lower() == correct_answer.lower()
+            else:
+                if correct_answer != 'N/A':  # 确保 correct_answer 不为空
+                    is_correct = checker.check_answer(user_answer, correct_answer) > 0.79
+
             # 更新错题本
             mistake_entry = MistakeBook.query.filter_by(user_id=current_user.id, word_id=word['id']).first()
             if not mistake_entry:
-                mistake_entry = MistakeBook(user_id=current_user.id, word_id=word['id'], incorrect_answers=0,
-                                            correct_answers=0)
+                mistake_entry = MistakeBook(user_id=current_user.id, word_id=word['id'], incorrect_answers=0, correct_answers=0)
                 db.session.add(mistake_entry)
 
             if is_correct:
                 mistake_entry.correct_answers += 1
             else:
                 mistake_entry.incorrect_answers += 1
-            db.session.commit()
-            # 在循环体内添加到data列表
+
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error updating MistakeBook: {e}")
+
+            # 在循环体内添加到 data 列表
             data.append({
                 'index': index,
                 'word_text': word_text,
@@ -164,9 +180,7 @@ def result():
                 'incorrect_count': mistake_entry.incorrect_answers
             })
 
-        return render_template('result.html', total_questions=total_questions, score=score, percentage=percentage,
-                               correct_count=correct_count, data=data)
-
+        return render_template('result.html', total_questions=total_questions, score=score, percentage=percentage, correct_count=correct_count, data=data)
 
 @app.route('/mistakes', methods=['GET'])
 @login_required
