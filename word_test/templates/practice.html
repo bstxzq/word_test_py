@@ -27,28 +27,36 @@
         .question {
             margin-bottom: 10px;
         }
-        button[type="submit"] {
+        .feedback {
+            margin-left: 10px;
+        }
+        .correct-answer {
+            display: none;
+        }
+        button#end-session {
+            margin-top: 10px;
             padding: 10px;
-            border: none;
-            background-color: #007bff;
-            color: #fff;
+            border: 1px solid #007bff;
+            background-color: transparent;
+            color: #007bff;
             border-radius: 5px;
             cursor: pointer;
             outline: none;
             width: 100%;
         }
-        button[type="submit"]:hover {
-            background-color: #0056b3;
+        button#end-session:hover {
+            background-color: #007bff;
+            color: #fff;
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <h1>练习会话</h1>
-    <form id="practice-form" action="/result" method="post">
+    <form id="practice-form" action="/home" method="get">
         <div id="questions-container"></div>
-        <button type="submit">提交</button>
+        <button id="end-session" type="button">结束会话并返回首页</button>
     </form>
-
     <script>
         var wordsJSON = '{{ words|tojson }}';
         var words = JSON.parse(wordsJSON);
@@ -64,40 +72,58 @@
 
                 if (practice_type === 'english_to_chinese') {
                     question.innerHTML =
-                        (index + 1) + '. ' + word.word + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '">';
+                        (index + 1) + '. ' + word.word + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '" class="answer-input" data-word-id="' + word.id + '"> <span id="feedback-' + word.id + '" class="feedback"></span> <span id="correct-answer-' + word.id + '" class="correct-answer" style="display:none">正确答案: ' + word.translation + '</span>';
                 } else if (practice_type === 'chinese_to_english') {
                     question.innerHTML =
-                        (index + 1) + '. ' + word.translation + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '">';
+                        (index + 1) + '. ' + word.translation + ' (' + word.part_of_speech + '): <input type="text" name="answer-' + word.id + '" class="answer-input" data-word-id="' + word.id + '"> <span id="feedback-' + word.id + '" class="feedback"></span> <span id="correct-answer-' + word.id + '" class="correct-answer" style="display:none">正确答案: ' + word.word + '</span>';
                 }
 
                 questionsContainer.appendChild(question);
             });
         }
 
-        window.onload = generateQuestions;
-
-        document.getElementById('practice-form').addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            var inputs = document.querySelectorAll('input[type="text"]');
-            var answers = Array.from(inputs).map(function (input) {
-                return {
-                    id: input.getAttribute('name').split('-')[1],
-                    answer: input.value,
-                };
+        function checkAnswer(wordId, userAnswer) {
+            $.ajax({
+                url: "{{ url_for('check_answer') }}",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    word_id: wordId,
+                    user_answer: userAnswer
+                }),
+                success: function(response) {
+                    let feedbackSpan = $("#feedback-" + wordId);
+                    let correctAnswerSpan = $("#correct-answer-" + wordId);
+                    if (response.correct) {
+                        feedbackSpan.text("正确").css("color", "green");
+                    } else {
+                        feedbackSpan.text("错误").css("color", "red");
+                    }
+                    correctAnswerSpan.show();
+                },
+                error: function() {
+                    alert("检查答案时发生错误");
+                }
             });
+        }
 
-            var isFormValid = true;
-            answers.forEach(function (answer) {
-                if (answer.answer.trim() === '') {
-                    isFormValid = false;
-                    // 处理验证错误（例如显示错误消息）
+        $(document).ready(function() {
+            generateQuestions();
+
+            $("#end-session").click(function() {
+                if (confirm("确认结束会话并返回首页？")) {
+                    window.location.href = "{{ url_for('home') }}";
                 }
             });
 
-            if (isFormValid) {
-                document.getElementById('practice-form').submit();
-            }
+            $(".answer-input").on("blur", function() {
+                let input = $(this);
+                let wordId = input.data("word-id");
+                let userAnswer = input.val().trim();
+                if (userAnswer !== '') {
+                    checkAnswer(wordId, userAnswer);
+                }
+            });
         });
     </script>
 </body>

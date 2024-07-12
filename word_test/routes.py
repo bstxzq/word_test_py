@@ -1,11 +1,11 @@
 # routes.py
-from flask import render_template, request, redirect, url_for, flash,session
+from flask import render_template, request, redirect, url_for, flash,session,jsonify
 from flask_login import login_required, login_user, logout_user, current_user
 from word_test import app, login_manager,db
 from word_test.models import User,Word, MistakeBook,WordLabel
 import bcrypt
 from AnswerChecker import AnswerChecker
-
+import re
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -88,99 +88,58 @@ def practice():
     # 渲染练习页面
     return render_template('practice.html', words=words, practice_type=practice_type)
 
-
-@app.route('/result', methods=['GET', 'POST'])
+@app.route('/check_answer', methods=['POST'])
 @login_required
-def result():
-    if request.method == 'POST':
-        # 根据提交结果判断答题情况
-        user_answers = {}
-        for key, value in request.form.items():
-            if key.startswith('answer-'):
-                word_id = key.split('-')[1]  # 提取单词的ID
-                user_answers[word_id] = value  # 将答案添加到字典中
+def check_answer():
+    data = request.get_json()
+    word_id = data.get('word_id')
+    user_answer = data.get('user_answer')
 
-        words = session.get('words')
-        practice_type = session.get('practice_type')
-        score = 0
-        correct_count = 0
-        incorrect_answers = {}
+    word = Word.query.get(word_id)
+    practice_type = session.get('practice_type')
 
-        if practice_type == "english_to_chinese":
-            checker = AnswerChecker('./bert-base-chinese-tokenizer', './bert-base-chinese-model')
-            correct_answers = {str(item['id']): item['translation'] for item in words}
-            for word_id, user_answer in user_answers.items():
-                correct_answer = correct_answers.get(word_id)
-                if correct_answer:  # 检查是否存在正确答案
-                    similarity = checker.check_answer(user_answer, correct_answer)
-                    print(user_answer, correct_answer, similarity)
-                    if similarity > 0.79:
-                        score += 1
-                        correct_count += 1
-                    else:
-                        incorrect_answers[word_id] = user_answer
-                else:
-                    incorrect_answers[word_id] = user_answer
+    def clean_answer(answer):
+        # 去除括号及其内容，然后去除首尾空格
+        cleaned_answer = re.sub(r'\([^)]*\)', '', answer).strip()
+        return cleaned_answer
 
-        elif practice_type == "chinese_to_english":
-            correct_answers = {str(item['id']): item['word'] for item in words}
-            for word_id, user_answer in user_answers.items():
-                correct_answer = correct_answers.get(word_id)
-                if correct_answer:  # 检查是否存在正确答案
-                    if user_answer.lower() == correct_answer.lower():
-                        score += 1
-                        correct_count += 1
-                    else:
-                        incorrect_answers[word_id] = user_answer
-                else:
-                    incorrect_answers[word_id] = user_answer
+    if practice_type == "english_to_chinese":
+        correct_answers = [clean_answer(answer) for answer in re.split(r'[,;\s.、，；。]', word.translation)]
+        checker = AnswerChecker('./bert-base-chinese-tokenizer', './bert-base-chinese-model')
+        is_correct = False
 
-        total_questions = len(words)
-        percentage = (score / total_questions) * 100 if total_questions > 0 else 0
+        for correct_answer in correct_answers:
+            similarity = checker.cosine_similarity(checker.get_sentence_embedding(user_answer), checker.get_sentence_embedding(correct_answer))
+            print(user_answer,correct_answer,similarity)
+            if similarity > 0.79:
+                is_correct = True
+                break
 
-        data = []
-        for index, word in enumerate(words, start=1):
-            word_id = str(word['id'])
-            word_text = f"{word['word']} ({word['part_of_speech']})"
-            user_answer = user_answers.get(word_id, '未回答')
-            correct_answer = correct_answers.get(word_id, 'N/A')
+    elif practice_type == "chinese_to_english":
+        correct_answers = [clean_answer(answer) for answer in re.split(r'[,;\s.、，；。]', word.word)]
+        is_correct = any(user_answer.lower() == correct_answer.lower() for correct_answer in correct_answers)
+    else:
+        return jsonify({'error': 'Invalid practice type'}), 400
 
-            is_correct = False
-            if practice_type == "chinese_to_english":
-                is_correct = user_answer.lower() == correct_answer.lower()
-            else:
-                if correct_answer != 'N/A':  # 确保 correct_answer 不为空
-                    is_correct = checker.check_answer(user_answer, correct_answer) > 0.79
+    # 更新错题本
+    mistake_entry = MistakeBook.query.filter_by(user_id=current_user.id, word_id=word.id).first()
+    if not mistake_entry:
+        mistake_entry = MistakeBook(user_id=current_user.id, word_id=word.id, incorrect_answers=0, correct_answers=0)
+        db.session.add(mistake_entry)
 
-            # 更新错题本
-            mistake_entry = MistakeBook.query.filter_by(user_id=current_user.id, word_id=word['id']).first()
-            if not mistake_entry:
-                mistake_entry = MistakeBook(user_id=current_user.id, word_id=word['id'], incorrect_answers=0, correct_answers=0)
-                db.session.add(mistake_entry)
+    if is_correct:
+        mistake_entry.correct_answers += 1
+    else:
+        mistake_entry.incorrect_answers += 1
 
-            if is_correct:
-                mistake_entry.correct_answers += 1
-            else:
-                mistake_entry.incorrect_answers += 1
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating MistakeBook: {e}")
 
-            try:
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print(f"Error updating MistakeBook: {e}")
-
-            # 在循环体内添加到 data 列表
-            data.append({
-                'index': index,
-                'word_text': word_text,
-                'user_answer': user_answer,
-                'correct_answer': correct_answer,
-                'is_correct': is_correct,
-                'correct_count': mistake_entry.correct_answers,
-                'incorrect_count': mistake_entry.incorrect_answers
-            })
-
-        return render_template('result.html', total_questions=total_questions, score=score, percentage=percentage, correct_count=correct_count, data=data)
+    # 返回 JSON 响应
+    return jsonify({'correct': is_correct})
 
 @app.route('/mistakes', methods=['GET'])
 @login_required

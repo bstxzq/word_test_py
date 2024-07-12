@@ -1,5 +1,5 @@
-import numpy as np
 from transformers import BertTokenizer, BertModel
+import numpy as np
 import re
 
 class AnswerChecker:
@@ -13,8 +13,14 @@ class AnswerChecker:
             raise
 
     def get_sentence_embedding(self, sentence):
-        # 获取句子的向量表示
+        # 获取单个单词的向量表示
         inputs = self.tokenizer(sentence, return_tensors='pt')
+        outputs = self.model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1).detach().numpy()
+
+    def get_batch_sentence_embeddings(self, sentences):
+        # 获取多个单词的向量表示
+        inputs = self.tokenizer(sentences, return_tensors='pt', padding=True, truncation=True)
         outputs = self.model(**inputs)
         return outputs.last_hidden_state.mean(dim=1).detach().numpy()
 
