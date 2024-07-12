@@ -86,8 +86,7 @@ def practice():
         word_ids = [entry.word_id for entry in mistake_entries]
         words_query = Word.query.filter(Word.id.in_(word_ids)).all()
     else:
-        word_label_id = session.get('word_label_id')
-        words_query = Word.query.filter(Word.label_id == word_label_id).order_by(db.func.random()).limit(number_of_words).all()
+        words_query = Word.query.order_by(db.func.random()).limit(number_of_words)
 
     words = [word.to_dict() for word in words_query]
     session['words'] = words
