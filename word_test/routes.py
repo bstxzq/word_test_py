@@ -34,7 +34,7 @@ def login():
 
         # 从数据库中查询用户
         user = User.query.filter_by(username=username).first()
-
+        print(user)
         if user and bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             # 如果用户名和密码正确，用户应该被标记为已登录并重定向到主页
             login_user(user)
@@ -58,12 +58,14 @@ def configure_practice():
         # 获取用户设置
         practice_type = request.form['practice_type']
         word_label_id = request.form['word_label']
+        practice_mistake_book = 'practice_mistake_book' in request.form
         number_of_words = request.form['number_of_words']
 
         # 可以将这些设置保存在session或数据库中
         session['practice_type'] = practice_type
         session['word_label_id'] = word_label_id
         session['number_of_words'] = number_of_words
+        session['practice_mistake_book'] = practice_mistake_book
 
         # 重定向到练习页面
         return redirect(url_for('practice'))
@@ -75,17 +77,21 @@ def configure_practice():
 @app.route('/practice')
 @login_required
 def practice():
-    # get模式，从session或数据库获取用户设置
     practice_type = session.get('practice_type')
-    number_of_words = session.get('number_of_words', 10)
+    number_of_words = int(session.get('number_of_words', 10))
+    practice_mistake_book = session.get('practice_mistake_book', False)
 
-    # 根据设置从数据库中获取单词
-    # 使用join来连接Word和WordLabel，然后根据WordLabel的id进行过滤
-    words_query = Word.query.order_by(db.func.random()).limit(number_of_words)
-   # 将Word对象转换为字典
-    words = [word.to_dict() for word in words_query.all()]
+    if practice_mistake_book:
+        mistake_entries = MistakeBook.query.filter_by(user_id=current_user.id).order_by(db.func.random()).limit(number_of_words).all()
+        word_ids = [entry.word_id for entry in mistake_entries]
+        words_query = Word.query.filter(Word.id.in_(word_ids)).all()
+    else:
+        word_label_id = session.get('word_label_id')
+        words_query = Word.query.filter(Word.label_id == word_label_id).order_by(db.func.random()).limit(number_of_words).all()
+
+    words = [word.to_dict() for word in words_query]
     session['words'] = words
-    # 渲染练习页面
+
     return render_template('practice.html', words=words, practice_type=practice_type)
 
 @app.route('/check_answer', methods=['POST'])
