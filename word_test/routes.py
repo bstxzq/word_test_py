@@ -1,15 +1,14 @@
 # routes.py
-from flask import render_template, request, redirect, url_for, flash,session,jsonify
+from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_required, login_user, logout_user, current_user
-from word_test import app, login_manager,db
-from word_test.models import User,Word, MistakeBook,WordLabel
+from word_test import app, login_manager, db
+from word_test.models import User, Word, MistakeBook, WordLabel
 import bcrypt
 from AnswerChecker import AnswerChecker
 import re
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 @app.route('/')
 def index():
     # 检查当前用户是否已登录
@@ -78,7 +77,11 @@ def configure_practice():
 @login_required
 def practice():
     practice_type = session.get('practice_type')
-    number_of_words = int(session.get('number_of_words', 10))
+    number_of_words_str = session.get('number_of_words', '10')
+    try:
+        number_of_words = int(number_of_words_str)
+    except ValueError:
+        number_of_words = 10  # Default value if conversion fails
     practice_mistake_book = session.get('practice_mistake_book', False)
 
     if practice_mistake_book:

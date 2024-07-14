@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>错题本</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="container mt-5">
-        <h2 class="text-center">错题本</h2>
-        <div class="table-responsive">
-            <table class="table table-striped">
+<body class="bg-gray-100 p-4">
+    <div class="container mx-auto mt-8 max-w-4xl bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-center text-2xl font-bold mb-4">错题本</h2>
+        <div class="overflow-x-auto">
+            <table class="table-auto w-full">
                 <thead>
-                    <tr>
-                        <th scope="col">序号</th>
-                        <th scope="col">题目</th>
-                        <th scope="col">词性</th>
-                        <th scope="col">错误次数</th>
-                        <th scope="col">正确次数</th>
+                    <tr class="bg-gray-200">
+                        <th class="px-4 py-2">序号</th>
+                        <th class="px-4 py-2">题目</th>
+                        <th class="px-4 py-2">词性</th>
+                        <th class="px-4 py-2">错误次数</th>
+                        <th class="px-4 py-2">正确次数</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for mistake in mistakes %}
-                        <tr>
-                            <td>{{ mistake.index }}</td>
-                            <td>{{ mistake.word }}</td>
-                            <td>{{ mistake.part_of_speech }}</td>
-                            <td>{{ mistake.incorrect_answers }}</td>
-                            <td>{{ mistake.correct_answers }}</td>
+                        <tr class="bg-white border-b">
+                            <td class="px-4 py-2">{{ mistake.index }}</td>
+                            <td class="px-4 py-2">{{ mistake.word }}</td>
+                            <td class="px-4 py-2">{{ mistake.part_of_speech }}</td>
+                            <td class="px-4 py-2">{{ mistake.incorrect_answers }}</td>
+                            <td class="px-4 py-2">{{ mistake.correct_answers }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
